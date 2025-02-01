@@ -11,7 +11,7 @@ const postWatch = async (req, res) => {
 
     const watch = await Watch.create({
       ...req.body,
-      watchImage, // Add the image path to the database
+      watchImage,
     });
 
     res.status(StatusCodes.CREATED).json({ watch, posted: true });
@@ -28,19 +28,23 @@ const getWatch = async (req, res) => {
     throw new NotFoundError(`No watch id : ${id}`);
   }
 
-  // Dynamically construct the full URL for the watchImage
-  const fullImageUrl = `${req.protocol}://${req.get("host")}/${
+  const fullImageUrl = `${req.protocol}://${req.get("host")}${
     watch.watchImage
   }`;
 
   res.status(StatusCodes.OK).json({
-    ...watch._doc, // Spread all the existing fields
-    watchImage: fullImageUrl, // Replace watchImage with the full URL
+    ...watch._doc,
+    watchImage: fullImageUrl,
   });
 };
 
 const getAllWatches = async (req, res) => {
-  const watches = await Watch.find();
+  const { category } = req.query;
+
+  const queryObject = {};
+  if (category && category !== "all") queryObject.category = category;
+
+  const watches = await Watch.find(queryObject);
   res.status(StatusCodes.OK).json({ watches, count: watches.length });
 };
 
@@ -57,8 +61,7 @@ const deleteWatch = async (req, res) => {
 const updateWatch = async (req, res) => {
   const { id } = req.params;
 
-  // If a new image is uploaded, update the `watchImage` field
-  const watchImage = req.file ? `/uploads/${req.file.filename}` : undefined;
+  const watchImage = req.file ? `uploads/${req.file.filename}` : undefined;
   const updateData = watchImage ? { ...req.body, watchImage } : req.body;
 
   const watch = await Watch.findByIdAndUpdate(id, updateData, {
